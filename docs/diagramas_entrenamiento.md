@@ -1,14 +1,5 @@
 # Esquemas del entrenamiento
 
-> **Propósito:** explicar de forma sencilla el recorrido de una observación
-> hasta la actualización del agente.
->
-> **Alcance:** implementación de `mountain_car`, sin incluir detalles internos
-> de Gymnasium o PyTorch.
->
-> **Fuente:** `src/mountain_car/agents/qlearning.py` y
-> `src/mountain_car/agents/dqn.py`.
->
 > **Resultados numéricos:** se generan en `notebooks/comparacion_agentes.ipynb`.
 
 <!-- COMPLETAR ANTES DE ENTREGAR: indicar cómo se hicieron los dibujos
