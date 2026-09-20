@@ -2,7 +2,7 @@
 
 La idea central fue entrenar dos agentes para resolver el mismo problema y comparar cómo se
 comportan: uno que aprende con una **tabla** (Q-Learning) y otro que aprende
-con una **red neuronal** (DQN).
+con una **red neuronal** (DQN). Durante el entrenamiento se obtuvieron los resultados mostrados a continuación.
 
 ## 1. El problema
 
