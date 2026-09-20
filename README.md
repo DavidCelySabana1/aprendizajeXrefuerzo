@@ -1,39 +1,173 @@
-# Comparación de agentes en MountainCar-v0
+# Comparación de agentes en MountainCar-v0: Q-Learning vs DQN
 
-Este repositorio es una práctica de aprendizaje por refuerzo. El objetivo es
-que un automóvil salga de un valle y llegue a una bandera usando la menor
-cantidad posible de pasos.
+Este repositorio es mi práctica de aprendizaje por refuerzo. La idea fue
+entrenar dos agentes para resolver el mismo problema y comparar cómo se
+comportan: uno que aprende con una **tabla** (Q-Learning) y otro que aprende
+con una **red neuronal** (DQN).
 
-El automóvil no tiene fuerza suficiente para subir directamente. Primero debe
-moverse hacia un lado, ganar impulso y usarlo para subir la montaña. Por eso se
-comparan dos formas de aprender:
+En este documento cuento qué hice, muestro los resultados que obtuve y explico
+cómo los interpreto. No soy experto en el tema, así que la lectura de los
+resultados es la que me parece razonable con lo que vi, y dejo indicado dónde
+tengo dudas.
 
-- **Q-Learning:** guarda los valores de las acciones en una tabla.
-- **DQN:** aprende esos valores con una red neuronal.
+## 1. El problema
 
-## Resultado esperado
+En MountainCar-v0 hay un automóvil en un valle entre dos montañas. El objetivo
+es llegar a una bandera que está en la cima de la derecha. El detalle es que el
+motor no tiene fuerza suficiente para subir directamente: el automóvil tiene que
+moverse hacia un lado, tomar impulso y usarlo para subir.
 
-Cada paso recibe una recompensa de `-1`. Si el agente no llega a la bandera en
-200 pasos, obtiene `-200`. Por tanto, una recompensa de `-110` es mejor que una
-de `-180`.
+- **Estado:** posición y velocidad del automóvil (dos números continuos).
+- **Acciones:** empujar a la izquierda, no empujar, empujar a la derecha.
+- **Recompensa:** `-1` por cada paso. El episodio termina al llegar a la bandera
+  o a los 200 pasos.
 
-El notebook genera las gráficas y las cifras reales de la ejecución:
+Como cada paso cuesta `-1`, una recompensa menos negativa significa que el
+agente llegó más rápido. Por ejemplo, `-110` es mejor que `-180`, y `-200`
+significa que nunca llegó.
 
-```text
-notebooks/comparacion_agentes.ipynb
-```
+## 2. Qué hice
 
-Como referencia del ejercicio:
+1. **Q-Learning tabular.** Como la tabla necesita estados discretos, dividí la
+   posición y la velocidad en rangos (según el enunciado, `n_bins=20`, es decir
+   400 celdas posibles). Cada celda guarda un valor por acción. El agente elige
+   con epsilon-greedy y actualiza la tabla con la regla de Q-Learning. Lo entrené
+   durante **20 000 episodios**.
+2. **DQN.** Reemplacé la tabla por una red neuronal que recibe el estado y
+   devuelve un valor por acción. Usa una memoria de experiencias, una red
+   principal y una red objetivo. Lo entrené durante **2 500 episodios**.
+3. **Exploración por bloques en DQN.** Con epsilon-greedy normal, DQN se quedaba
+   plano en `-200`: los empujes aleatorios de un paso se cancelan entre sí y el
+   automóvil nunca llega a la bandera, así que la red no tiene nada de qué
+   aprender. Lo que funcionó fue mantener una misma acción durante varios pasos,
+   para que se produzca el balanceo que necesita el problema.
+4. **Notebook de comparación.** Entrena ambos agentes desde cero, guarda la
+   recompensa de cada episodio, grafica la evolución con una media móvil y evalúa
+   cada agente en 10 episodios nuevos.
 
-| Agente | Recompensa aproximada | Llegada esperada | Interpretación |
-|---|---:|---:|---|
-| Q-Learning | `-133` | 100/100 | Aprende, pero necesita más episodios. |
-| DQN | `-106` | 100/100 | Puede obtener un resultado mejor, con más ajustes. |
+## 3. Resultados
 
-Estas cifras son referencias, no resultados inventados para esta documentación.
-La evidencia válida para el informe es la salida y las gráficas del notebook.
+Todas las cifras de esta sección salen de `notebooks/comparacion_agentes.ipynb`.
 
-## Instalación y ejecución
+### 3.1 Evolución durante el entrenamiento
+
+![Evolución de la recompensa durante el entrenamiento](docs/evidencia/curva_entrenamiento.png)
+
+Lo que veo en la gráfica (los valores son aproximados, leídos de la curva):
+
+- **DQN** se queda cerca de `-200` durante los primeros cientos de episodios. Hacia
+  el episodio 1 000 sube rápido y se estabiliza alrededor de `-130`, con un
+  máximo cercano a `-120` cerca del episodio 2 250.
+- **Q-Learning** se queda en `-200` durante unos 2 500 episodios. Después mejora
+  despacio y con muchos altibajos hasta llegar a `-125` o `-135` entre los
+  episodios 12 000 y 15 000.
+- Alrededor del episodio 15 000 Q-Learning empeora bastante (baja hasta cerca de
+  `-190`), se recupera y luego tiene otras caídas menores. Termina el
+  entrenamiento cerca de `-140`.
+
+### 3.2 Evaluación final (10 episodios nuevos)
+
+| Agente | Episodios de entrenamiento | Recompensa media | Desv. | Mejor | Peor | Pasos medios | Llegó a la bandera |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Q-Learning | 20 000 | `-163.20` | 31.53 | `-115` | `-191` | 163.2 | 10/10 |
+| DQN | 2 500 | `-104.00` | 22.27 | `-85` | `-162` | 104.0 | 10/10 |
+
+![Salida de la evaluación en el notebook](docs/evidencia/evaluacion_final.png)
+
+![Recompensa media final y llegadas a la bandera](docs/evidencia/barras_comparacion.png)
+
+**Mejor resultado de cada agente:**
+
+- **DQN:** su mejor episodio de evaluación fue de `-85` (85 pasos), y su media
+  fue `-104.00`.
+- **Q-Learning:** su mejor episodio de evaluación fue de `-115`, y su media fue
+  `-163.20`.
+
+Los dos agentes llegaron a la bandera en los 10 episodios, así que ambos
+aprendieron a resolver el problema. La diferencia está en qué tan rápido lo
+hacen: DQN llega en promedio 59 pasos antes.
+
+## 4. Comparación
+
+| Aspecto | Q-Learning | DQN |
+|---|---|---|
+| Idea | Tabla de valores | Red neuronal de valores |
+| Estabilidad | Curva con muchos altibajos y una caída fuerte cerca del episodio 15 000 | Curva más suave en los 2 500 episodios, con un techo alrededor de `-120` a `-130` |
+| Velocidad de aprendizaje | Lenta: unos 2 500 episodios en `-200` y cerca de 12 000 para acercarse a `-125` | Rápida: mejora hacia el episodio 1 000 |
+| Desempeño final | `-163.20` de media, mejor `-115` | `-104.00` de media, mejor `-85` |
+| Facilidad de implementación | Alta | Media |
+| Memoria y cómputo | Bajo | Mayor (red, memoria de experiencias, red objetivo) |
+| Fortaleza | Fácil de entender y de revisar | Maneja estados continuos sin discretizar |
+| Limitación | Depende de cómo se discretice y la tabla crece con el espacio | Necesita más ajustes y puede no aprender si nunca llega a la bandera |
+
+### Estabilidad del entrenamiento
+
+Antes de correr el experimento esperaba que Q-Learning fuera el más estable,
+porque cada estado tiene su propia entrada en la tabla. En mi ejecución no fue
+así: su curva oscila bastante y tuvo una caída grande alrededor del episodio
+15 000. Mi hipótesis, que no comprobé, es que al agrupar posiciones y
+velocidades distintas en la misma celda, una actualización puede afectar a
+situaciones que en realidad son diferentes. DQN se vio más estable, aunque solo
+lo entrené 2 500 episodios y no sé cómo se habría comportado en un
+entrenamiento más largo.
+
+### Velocidad de aprendizaje
+
+Contando episodios, DQN aprendió mucho más rápido: en unos 1 000 a 1 200
+episodios ya rondaba `-130`, mientras que Q-Learning necesitó miles de episodios
+solo para salir de `-200`. No medí el tiempo real de ejecución, así que no puedo
+decir cuál fue más rápido en segundos. Cada actualización de DQN cuesta más
+cómputo que la de la tabla.
+
+### Desempeño final
+
+DQN fue mejor en la evaluación (`-104.00` contra `-163.20`), y su peor episodio
+(`-162`) fue mejor que la media de Q-Learning. Algo que me llamó la atención:
+la evaluación de Q-Learning (`-163.20`) quedó peor que el final de su curva de
+entrenamiento (cerca de `-140`) y peor que la referencia que traía el enunciado
+(cerca de `-133`). Creo que se debe a dos cosas: la tabla que evalué es la del
+final del entrenamiento, que coincidió con un momento bajo de una curva muy
+oscilante, y son solo 10 episodios de evaluación. Es una explicación probable,
+pero no la verifiqué.
+
+### Dificultad de implementación
+
+Q-Learning fue más sencillo: discretizar, elegir la acción y actualizar la
+tabla. DQN exige más piezas (red, memoria, red objetivo, pasos de gradiente) y
+más cuidado con detalles como las formas de los tensores o el uso de
+`terminated` (y no `truncated`) como marca de final. Además, DQN necesitó la
+exploración por bloques para aprender en este problema.
+
+## 5. Conclusión
+
+Para MountainCar, DQN me dio mejores resultados: aprendió con muchos menos
+episodios y terminó con una recompensa media de `-104.00` frente a `-163.20` de
+Q-Learning. Q-Learning es más fácil de programar y de entender, pero en mi
+ejecución fue más lento y más irregular. Los dos resolvieron el problema
+(10/10 llegadas).
+
+## 6. Limitaciones de mi comparación
+
+- Hice **una sola ejecución** por agente, y los resultados pueden cambiar con otra
+  semilla.
+- La evaluación usa solo **10 episodios**, por lo que las medias son ruidosas.
+- Entrené con **distinto número de episodios** (20 000 y 2 500). Comparé en
+  episodios, no en tiempo.
+- Los valores que doy de la curva de entrenamiento están leídos a ojo de la
+  gráfica.
+- Para una comparación más sólida haría varias ejecuciones con distintas
+  semillas, evaluaría con más episodios y guardaría el mejor punto del
+  entrenamiento en lugar del último.
+
+## 7. Esquemas del proceso
+
+Los esquemas del entrenamiento de cada agente están en
+[`docs/diagramas_entrenamiento.md`](docs/diagramas_entrenamiento.md):
+
+- Q-Learning: `docs/esquemas/esquema_qlearning.png`
+- DQN: `docs/esquemas/esquema_dqn.png`
+
+## 8. Instalación y ejecución
 
 Desde la carpeta del proyecto:
 
@@ -66,111 +200,23 @@ uv run mountaincar sim dqn --episodes 1 --steps 30
 uv run mountaincar render dqn --episodes 3
 ```
 
-## Notebook de comparación
-
-El notebook:
-
-1. Define una semilla y el número de episodios.
-2. Entrena Q-Learning y DQN desde cero.
-3. Guarda la recompensa de cada episodio.
-4. Grafica la evolución y una media móvil.
-5. Evalúa cada agente en 10 episodios nuevos.
-6. Muestra recompensa media, variación, mejor y peor episodio, pasos medios y
-   cantidad de llegadas a la bandera.
-
-Para abrirlo:
+Abrir el notebook de comparación:
 
 ```powershell
 uv run jupyter notebook notebooks/comparacion_agentes.ipynb
 ```
 
-También se puede abrir directamente desde VS Code usando el kernel del entorno
-creado por `uv`.
+También se puede abrir desde VS Code con el kernel del entorno creado por `uv`.
 
-## Comparación sencilla
-
-### Estabilidad
-
-Q-Learning suele ser más fácil de seguir porque cada estado tiene una entrada
-concreta en la tabla. Si la discretización es razonable, sus cambios son más
-claros.
-
-DQN puede variar más: la red ajusta muchos valores al mismo tiempo y depende de
-la memoria de experiencias, el tamaño del grupo de entrenamiento y la red
-objetivo.
-
-### Velocidad de aprendizaje
-
-Q-Learning tarda más episodios, pero cada actualización es sencilla. DQN puede
-mejorar más después de descubrir una buena experiencia, aunque al comienzo
-puede no aprender si nunca llega a la bandera.
-
-### Desempeño final
-
-En este entorno, DQN puede acercarse a `-106`, mientras Q-Learning suele quedar
-cerca de `-133`. La comparación final debe tomarse de la tabla y las gráficas
-producidas por el notebook, porque cada ejecución puede variar.
-
-### Ventajas, limitaciones y dificultad
-
-| Aspecto | Q-Learning | DQN |
-|---|---|---|
-| Idea | Tabla de valores | Red neuronal de valores |
-| Facilidad | Alta | Media |
-| Memoria | Baja | Mayor, por la red y las experiencias |
-| Fortaleza | Claro en espacios pequeños | Maneja estados continuos sin una tabla enorme |
-| Limitación | La tabla crece con el espacio | Puede ser inestable y requiere más ajustes |
-| Implementación | Discretizar, elegir y actualizar | Red, memoria, red objetivo y gradientes |
-
-Q-Learning necesita convertir la posición y velocidad en una celda, escoger una
-acción y actualizar su valor. DQN necesita además una red principal, una red
-objetivo, una memoria de experiencias y grupos de entrenamiento. En este
-proyecto también se usa una exploración por bloques: el agente mantiene un
-empuje durante varios pasos para producir el balanceo que MountainCar necesita.
-
-## Esquemas del proceso
-
-Los dibujos están escritos manualmente en Mermaid para que se puedan leer y
-editar; no son imágenes generadas por IA. La fuente completa está en
-[`docs/diagramas_entrenamiento.md`](docs/diagramas_entrenamiento.md).
-
-### Q-Learning
-
-```mermaid
-flowchart LR
-    A[Estado: posición y velocidad] --> B[Convertir a una celda]
-    B --> C{¿Explorar?}
-    C -->|Sí| D[Acción aleatoria]
-    C -->|No| E[Mejor acción de la tabla]
-    D --> F[Ejecutar acción]
-    E --> F
-    F --> G[Recompensa y nuevo estado]
-    G --> H[Calcular objetivo]
-    H --> I[Actualizar tabla Q]
-    I --> B
-```
-
-### DQN
-
-```mermaid
-flowchart LR
-    A[Estado] --> B[Red neuronal]
-    B --> C[Valores de las acciones]
-    C --> D[Elegir acción]
-    D --> E[Ejecutar y guardar experiencia]
-    E --> F[Tomar un grupo de experiencias]
-    F --> G[Red objetivo calcula el futuro]
-    G --> H[Comparar y ajustar red principal]
-    H --> B
-```
-
-## Estructura
+## 9. Estructura
 
 ```text
 src/mountain_car/agents/qlearning.py   # Agente con tabla
 src/mountain_car/agents/dqn.py         # Agente con red neuronal
 notebooks/comparacion_agentes.ipynb    # Gráficas y comparación
-docs/diagramas_entrenamiento.md        # Fuentes editables de los esquemas
+docs/diagramas_entrenamiento.md        # Esquemas del entrenamiento
+docs/esquemas/                         # Dibujos de Q-Learning y DQN
+docs/evidencia/                        # Capturas de resultados del notebook
 EXERCISES.md                           # Enunciado de los ejercicios
-saves/                                  # Archivos generados al entrenar
+saves/                                 # Archivos generados al entrenar
 ```
