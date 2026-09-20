@@ -1,14 +1,8 @@
 # Comparación de agentes en MountainCar-v0: Q-Learning vs DQN
 
-Este repositorio es mi práctica de aprendizaje por refuerzo. La idea fue
-entrenar dos agentes para resolver el mismo problema y comparar cómo se
+La idea central fue entrenar dos agentes para resolver el mismo problema y comparar cómo se
 comportan: uno que aprende con una **tabla** (Q-Learning) y otro que aprende
 con una **red neuronal** (DQN).
-
-En este documento cuento qué hice, muestro los resultados que obtuve y explico
-cómo los interpreto. No soy experto en el tema, así que la lectura de los
-resultados es la que me parece razonable con lo que vi, y dejo indicado dónde
-tengo dudas.
 
 ## 1. El problema
 
@@ -153,8 +147,6 @@ ejecución fue más lento y más irregular. Los dos resolvieron el problema
 - La evaluación usa solo **10 episodios**, por lo que las medias son ruidosas.
 - Entrené con **distinto número de episodios** (20 000 y 2 500). Comparé en
   episodios, no en tiempo.
-- Los valores que doy de la curva de entrenamiento están leídos a ojo de la
-  gráfica.
 - Para una comparación más sólida haría varias ejecuciones con distintas
   semillas, evaluaría con más episodios y guardaría el mejor punto del
   entrenamiento en lugar del último.
